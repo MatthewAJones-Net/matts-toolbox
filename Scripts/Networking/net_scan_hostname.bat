@@ -1,3 +1,9 @@
+# This script is used to run a network scan via CMD and will display the IP , MAC and Hostname of each device
+# It will run a ping to every IP on your subnet and then it uses the command "arp -a" to display the device it can see. This might not show all the device on the network
+# I use this when I quickly need to find a device and also if I can't use application such as advanced IP scanner
+
+
+
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 
@@ -65,3 +71,4 @@ echo.
 :hold
 timeout /t 3600 /nobreak >nul
 goto :hold
+
