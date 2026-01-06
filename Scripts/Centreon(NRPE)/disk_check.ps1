@@ -1,4 +1,6 @@
-﻿$disk = Get-WmiObject -Class Win32_LogicalDisk -Filter "DriveType=3" | Select-Object DeviceID, Size, FreeSpace
+# Create this script to monitor the amound of storage on a WINDOWS server and report back to centreon. Will report alerts to centreon if it goes over the limit
+ 
+ $disk = Get-WmiObject -Class Win32_LogicalDisk -Filter "DriveType=3" | Select-Object DeviceID, Size, FreeSpace
 
 foreach ($d in $disk) {
     $deviceID = $d.DeviceID
