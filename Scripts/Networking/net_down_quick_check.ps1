@@ -1,4 +1,6 @@
-# netdown.ps1 - quick network triage 
+# netdown.ps1 - quick network triage - it will do some quick checks to help diagnose some problems quicker
+# The checks it does are Check if the device has a network card and if it active > checks what IP DNS and Gateway the device has > Then will run pings to the DNS server > Then pings to Gateway
+# Then will run pings to 8.8.8.8 and 1.1.1.1 > Then does a trace route for further Diagnostics
 
 $TimeoutMs   = 1000
 $TestHosts   = @("google.com","bbc.co.uk")
