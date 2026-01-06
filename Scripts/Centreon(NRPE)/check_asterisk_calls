@@ -1,3 +1,4 @@
+# This script I create to monitor active calls on a FreePBX system and then to report back to centreon how many calls
 #bash
 
 llamadas=`/usr/sbin/asterisk -rx "core show calls" | grep active\ call | cut -d" " -f1`
