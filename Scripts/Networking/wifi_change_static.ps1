@@ -1,4 +1,9 @@
-﻿# SSID you want static IP for
+# This script is used for users who need a Static IP when connecting to a WIFI. 
+# I deployed this script via Task Scheduler and set to run every time the device joined a new WIFI by checking for log 8001 in Services Logs → Microsoft → Windows → WLAN-AutoConfig → Operational
+ 
+ 
+ 
+ # SSID you want static IP for
 $TargetSSID = "MyOfficeWiFi"
 $Interface = "Wi-Fi"
 
