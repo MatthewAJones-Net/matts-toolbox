@@ -1,17 +1,5 @@
-#!/bin/bash
+# This script is used to monitor the storage on a Linux VM and to report back to centreon how much space is available and then sends an alert if it goes over a threshold 
 
-# -----------------------------------------------------------------------------
-# Script: check_disk_space.sh
-# Description: Checks the available disk space on a specified filesystem.
-#              Reports status based on defined thresholds compatible with
-#              Centreon/Nagios monitoring.
-# Author: [Your Name]
-# Date: [Date]
-# -----------------------------------------------------------------------------
-
-# --------------------------- Configuration -----------------------------------
-
-# Default filesystem to check (e.g., "/", "/home", "/var")
 FILESYSTEM="/"
 
 # Thresholds for free space in percentage
