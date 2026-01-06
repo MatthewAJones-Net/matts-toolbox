@@ -2,4 +2,8 @@
 
 A small collection of practical scripts, checks and templates I use for day-to-day network and infrastructure work.
 
-Everything in this repo is **sanitised** and does have any customer data, no customer names, no IP ranges/domains, no secrets/keys
+## Sanitisation / safety notes
+To avoid exposing customer or employer information:
+- No customer names, domains, IP ranges, ticket references or screenshots
+- No credentials, API keys, tokens or certificates
+- Any values that could identify a real environment have been removed or replaced
