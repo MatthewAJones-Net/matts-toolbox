@@ -1,0 +1,68 @@
+#!/bin/bash
+
+# -----------------------------------------------------------------------------
+# Script: check_firewalld.sh
+# Description: Checks if firewalld service is active and running on CentOS 9.
+#              Compatible with Centreon/Nagios monitoring.
+# Author: [Your Name]
+# Date: [Date]
+# -----------------------------------------------------------------------------
+
+# Function to display help
+show_help() {
+    echo "Usage: $0"
+    echo
+    echo "Checks if firewalld is active and running."
+    echo "Outputs status in a format compatible with Centreon/Nagios."
+    echo
+    echo "Options:"
+    echo "  -h, --help    Display this help message and exit."
+    exit 3
+}
+
+# Parse command-line arguments
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -h|--help) show_help ;;
+        *) echo "UNKNOWN: Invalid option $1"; exit 3 ;;
+    esac
+done
+
+# Check if systemctl is available
+if ! command -v systemctl &> /dev/null; then
+    echo "UNKNOWN: systemctl command not found."
+    exit 3
+fi
+
+# Check the status of firewalld
+firewalld_status=$(systemctl is-active firewalld)
+firewalld_enabled=$(systemctl is-enabled firewalld)
+
+# Initialize variables for performance data
+status_num=0
+
+# Determine the state and set appropriate exit codes and messages
+case "$firewalld_status" in
+    active)
+        if [ "$firewalld_enabled" = "enabled" ]; then
+            echo "OK: firewalld is active and enabled | status=1"
+            exit 0
+        else
+            # firewalld is active but not enabled at boot
+            echo "WARNING: firewalld is active but not enabled at boot | status=1"
+            exit 1
+        fi
+        ;;
+    inactive)
+        echo "CRITICAL: firewalld is inactive | status=0"
+        exit 2
+        ;;
+    failed)
+        echo "CRITICAL: firewalld service has failed | status=0"
+        exit 2
+        ;;
+    *)
+        echo "UNKNOWN: firewalld status is '$firewalld_status' | status=0"
+        exit 3
+        ;;
+esac

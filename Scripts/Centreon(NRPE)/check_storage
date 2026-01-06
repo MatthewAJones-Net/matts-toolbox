@@ -1,0 +1,143 @@
+#!/bin/bash
+
+# -----------------------------------------------------------------------------
+# Script: check_disk_space.sh
+# Description: Checks the available disk space on a specified filesystem.
+#              Reports status based on defined thresholds compatible with
+#              Centreon/Nagios monitoring.
+# Author: [Your Name]
+# Date: [Date]
+# -----------------------------------------------------------------------------
+
+# --------------------------- Configuration -----------------------------------
+
+# Default filesystem to check (e.g., "/", "/home", "/var")
+FILESYSTEM="/"
+
+# Thresholds for free space in percentage
+WARNING_THRESHOLD=10
+CRITICAL_THRESHOLD=5
+
+# Log file for debugging (optional)
+LOGFILE="/var/log/check_disk_space.log"
+
+# --------------------------- Functions ---------------------------------------
+
+# Function to display help
+show_help() {
+    echo "Usage: $0 [-f <filesystem>] [-w <warning_threshold>] [-c <critical_threshold>] [-h]"
+    echo
+    echo "Options:"
+    echo "  -f, --filesystem        Filesystem to check (default: /)"
+    echo "  -w, --warning           Warning threshold for free space in % (default: 10)"
+    echo "  -c, --critical          Critical threshold for free space in % (default: 5)"
+    echo "  -h, --help              Display this help message and exit."
+    echo
+    echo "Example:"
+    echo "  $0 -f /home -w 15 -c 7"
+    exit 3
+}
+
+# Function to log messages
+log() {
+    echo "$(date +"%Y-%m-%d %H:%M:%S") - $1" >> "$LOGFILE"
+}
+
+# --------------------------- Argument Parsing ---------------------------------
+
+# Parse command-line arguments
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -f|--filesystem)
+            if [[ -n $2 ]]; then
+                FILESYSTEM="$2"
+                shift
+            else
+                echo "UNKNOWN: Missing argument for $1."
+                exit 3
+            fi
+            ;;
+        -w|--warning)
+            if [[ -n $2 && $2 =~ ^[0-9]+$ ]]; then
+                WARNING_THRESHOLD="$2"
+                shift
+            else
+                echo "UNKNOWN: Invalid warning threshold."
+                exit 3
+            fi
+            ;;
+        -c|--critical)
+            if [[ -n $2 && $2 =~ ^[0-9]+$ ]]; then
+                CRITICAL_THRESHOLD="$2"
+                shift
+            else
+                echo "UNKNOWN: Invalid critical threshold."
+                exit 3
+            fi
+            ;;
+        -h|--help)
+            show_help
+            ;;
+        *)
+            echo "UNKNOWN: Invalid option $1."
+            exit 3
+            ;;
+    esac
+    shift
+done
+
+# --------------------------- Dependency Checks -------------------------------
+
+# Check if 'df' command is available
+if ! command -v df &> /dev/null; then
+    echo "UNKNOWN: 'df' command not found."
+    exit 3
+fi
+
+# --------------------------- Main Logic ---------------------------------------
+
+# Log the start of the check
+log "Starting disk space check for filesystem: $FILESYSTEM"
+
+# Retrieve disk usage information for the specified filesystem
+# Using -P for POSIX output to ensure consistent parsing
+DISK_USAGE_OUTPUT=$(df -P "$FILESYSTEM" 2>&1)
+DF_EXIT_CODE=$?
+
+if [[ $DF_EXIT_CODE -ne 0 ]]; then
+    echo "UNKNOWN: Unable to retrieve disk usage for '$FILESYSTEM'. df error: $DISK_USAGE_OUTPUT"
+    log "Failed to execute df for '$FILESYSTEM'. Output: $DISK_USAGE_OUTPUT"
+    exit 3
+fi
+
+# Extract the Used% column (e.g., "30%")
+USED_PERCENTAGE=$(echo "$DISK_USAGE_OUTPUT" | awk 'NR==2 {print $5}' | tr -d '%')
+
+# Validate that USED_PERCENTAGE is a number
+if ! [[ "$USED_PERCENTAGE" =~ ^[0-9]+$ ]]; then
+    echo "UNKNOWN: Unable to parse disk usage percentage."
+    log "Parsed used percentage is not a number: '$USED_PERCENTAGE'"
+    exit 3
+fi
+
+# Calculate Free Percentage
+FREE_PERCENTAGE=$((100 - USED_PERCENTAGE))
+
+# Log the parsed percentages
+log "Used Percentage: $USED_PERCENTAGE%"
+log "Free Percentage: $FREE_PERCENTAGE%"
+
+# Determine the status based on thresholds
+if [[ "$FREE_PERCENTAGE" -le "$CRITICAL_THRESHOLD" ]]; then
+    echo "CRITICAL: Free space on '$FILESYSTEM' is ${FREE_PERCENTAGE}% | free=${FREE_PERCENTAGE}%;${WARNING_THRESHOLD};${CRITICAL_THRESHOLD}"
+    log "CRITICAL: Free space on '$FILESYSTEM' is ${FREE_PERCENTAGE}%."
+    exit 2
+elif [[ "$FREE_PERCENTAGE" -le "$WARNING_THRESHOLD" ]]; then
+    echo "WARNING: Free space on '$FILESYSTEM' is ${FREE_PERCENTAGE}% | free=${FREE_PERCENTAGE}%;${WARNING_THRESHOLD};${CRITICAL_THRESHOLD}"
+    log "WARNING: Free space on '$FILESYSTEM' is ${FREE_PERCENTAGE}%."
+    exit 1
+else
+    echo "OK: Free space on '$FILESYSTEM' is ${FREE_PERCENTAGE}% | free=${FREE_PERCENTAGE}%;${WARNING_THRESHOLD};${CRITICAL_THRESHOLD}"
+    log "OK: Free space on '$FILESYSTEM' is ${FREE_PERCENTAGE}%."
+    exit 0
+fi

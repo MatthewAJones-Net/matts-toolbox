@@ -1,0 +1,131 @@
+#!/bin/bash
+
+# -----------------------------------------------------------------------------
+# Script: check_fail2ban_asterisk.sh
+# Description: Checks if the 'asterisk' jail in Fail2Ban is active and running.
+#              Reports the number of currently banned IPs.
+#              Compatible with Centreon/Nagios monitoring.
+# Author: [Your Name]
+# Date: [Date]
+# -----------------------------------------------------------------------------
+
+# Variables
+JAIL_NAME="asterisk"                        # Ensure this matches the exact jail name
+FAIL2BAN_CLIENT="/usr/bin/fail2ban-client"   # Path to fail2ban-client
+SERVICE_NAME="fail2ban"                      # Fail2Ban service name
+LOGFILE="/var/log/check_fail2ban_asterisk.log" # Log file path
+
+# Function to log messages
+log() {
+    echo "$(date +"%Y-%m-%d %H:%M:%S") - $1" >> "$LOGFILE"
+}
+
+# Function to display help
+show_help() {
+    echo "Usage: $0 [-w <warning_threshold>] [-c <critical_threshold>]"
+    echo
+    echo "Options:"
+    echo "  -w, --warning     Warning threshold for banned IPs (default: 5)"
+    echo "  -c, --critical    Critical threshold for banned IPs (default: 10)"
+    echo "  -h, --help        Display this help message and exit."
+    echo
+    echo "Example:"
+    echo "  $0 -w 10 -c 20"
+    exit 3
+}
+
+# Default thresholds
+WARNING_THRESHOLD=5
+CRITICAL_THRESHOLD=10
+
+# Parse command-line arguments
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -w|--warning)
+            if [[ -n $2 && $2 =~ ^[0-9]+$ ]]; then
+                WARNING_THRESHOLD=$2
+                shift
+            else
+                echo "UNKNOWN: Invalid warning threshold."
+                exit 3
+            fi
+            ;;
+        -c|--critical)
+            if [[ -n $2 && $2 =~ ^[0-9]+$ ]]; then
+                CRITICAL_THRESHOLD=$2
+                shift
+            else
+                echo "UNKNOWN: Invalid critical threshold."
+                exit 3
+            fi
+            ;;
+        -h|--help)
+            show_help
+            ;;
+        *)
+            echo "UNKNOWN: Invalid option $1"
+            exit 3
+            ;;
+    esac
+    shift
+done
+
+log "Starting Fail2Ban '$JAIL_NAME' jail status check."
+
+# Check if fail2ban-client exists and is executable
+if [[ ! -x "$FAIL2BAN_CLIENT" ]]; then
+    echo "UNKNOWN: fail2ban-client not found or not executable."
+    log "fail2ban-client not found or not executable."
+    exit 3
+fi
+
+# Check if Fail2Ban service is running
+service_status=$(systemctl is-active "$SERVICE_NAME")
+if [[ "$service_status" != "active" ]]; then
+    echo "CRITICAL: Fail2Ban service is not running (status: $service_status)."
+    log "Fail2Ban service is not running (status: $service_status)."
+    exit 2
+fi
+
+# Attempt to get the status of the specific jail
+jail_status_output=$("$FAIL2BAN_CLIENT" status "$JAIL_NAME" 2>&1)
+jail_status_exit_code=$?
+
+if [[ $jail_status_exit_code -ne 0 ]]; then
+    # The jail might not be active or doesn't exist
+    echo "WARNING: Jail '$JAIL_NAME' is not active or does not exist."
+    log "Jail '$JAIL_NAME' is not active or does not exist. Output: $jail_status_output"
+    exit 1
+fi
+
+# Log the jail status output for debugging
+log "Jail Status Output: $jail_status_output"
+
+# Parse the number of banned IPs using a more robust method
+# This regex matches lines like "Currently banned: 1"
+banned_ips=$(echo "$jail_status_output" | grep -i "Currently banned" | sed -n 's/.*Currently banned:\s*\([0-9]\+\).*/\1/p')
+
+# Log the parsed banned_ips
+log "Parsed Banned IPs: $banned_ips"
+
+# Validate that banned_ips is a number
+if ! [[ "$banned_ips" =~ ^[0-9]+$ ]]; then
+    echo "UNKNOWN: Unable to parse number of banned IPs."
+    log "Unable to parse number of banned IPs from output."
+    exit 3
+fi
+
+# Determine output based on banned IPs
+if [[ "$banned_ips" -ge "$CRITICAL_THRESHOLD" ]]; then
+    echo "CRITICAL: '$JAIL_NAME' jail is active with $banned_ips banned IPs | banned_ips=$banned_ips"
+    log "'$JAIL_NAME' jail is active with $banned_ips banned IPs."
+    exit 2
+elif [[ "$banned_ips" -ge "$WARNING_THRESHOLD" ]]; then
+    echo "WARNING: '$JAIL_NAME' jail is active with $banned_ips banned IPs | banned_ips=$banned_ips"
+    log "'$JAIL_NAME' jail is active with $banned_ips banned IPs."
+    exit 1
+else
+    echo "OK: '$JAIL_NAME' jail is active with $banned_ips banned IPs | banned_ips=$banned_ips"
+    log "'$JAIL_NAME' jail is active with $banned_ips banned IPs."
+    exit 0
+fi

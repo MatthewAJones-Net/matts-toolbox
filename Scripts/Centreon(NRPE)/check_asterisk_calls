@@ -1,0 +1,48 @@
+#bash
+
+llamadas=`/usr/sbin/asterisk -rx "core show calls" | grep active\ call | cut -d" " -f1`
+
+if [ $# == 0 ]; then 
+	
+	 echo "OK:$llamadas simultaneous calls|calls=$llamadas"
+        exit 0
+fi
+
+if [ "$1" == "-h" -o "$1" == "--help" ]; then
+	echo "Help"
+	echo "The syntax is:"
+	echo "$0 [XX] [YY]"
+	echo "XX warning value"
+	echo "YY critical value"
+	exit 3
+elif [ -z "$llamadas" ]; then
+        echo "ERROR:an error has occurred, check that you have installed the Asterisk PBX." 
+	exit 3
+fi
+
+if [ -n "$2" ];then
+	if [ "$1" -gt "$2" ];then
+                echo "ERROR:Sintax error, warning value is greater than critical value"
+                echo "$0 $1 $2"
+		exit 2
+       fi
+	
+	if [ "$llamadas" -ge $1 -a "$llamadas" -lt $2 ];then
+		echo "WARNING:$llamadas simultaneous calls|calls=$llamadas"
+		exit 2
+	fi
+
+	if [ "$llamadas" -ge "$2" ];then
+        	echo "CRITICAL:$llamadas simultaneous calls|calls=$llamadas"
+        	exit 2
+	fi
+elif [ "$llamadas" -ge "$1" ];then
+        	echo "WARNING:$llamadas simultaneous calls|calls=$llamadas"
+        	exit 2
+fi
+
+if [ "$llamadas" -lt "$1" ];then
+        echo "OK:$llamadas simultaneous calls|calls=$llamadas"
+        exit 0
+fi
+
