@@ -1,13 +1,8 @@
 #!/bin/bash
 
-# -----------------------------------------------------------------------------
-# Script: check_fail2ban_asterisk.sh
-# Description: Checks if the 'asterisk' jail in Fail2Ban is active and running.
-#              Reports the number of currently banned IPs.
-#              Compatible with Centreon/Nagios monitoring.
-# Author: [Your Name]
-# Date: [Date]
-# -----------------------------------------------------------------------------
+#Checks if the 'asterisk' jail in Fail2Ban is active and running. Reports the number of currently banned IPs.Then reports back to centreon
+
+
 
 # Variables
 JAIL_NAME="asterisk"                        # Ensure this matches the exact jail name
