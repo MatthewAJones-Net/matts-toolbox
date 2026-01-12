@@ -2,7 +2,7 @@
 
 A small collection of practical scripts, checks and templates I use for day-to-day network and infrastructure work.
 
-##Inside this repo you’ll find:
+## Inside this repo you’ll find:
 - PowerShell, Shell and Batch scripts 
 - Runbooks and configs for common network/infrastructure ops
 - Templates and snippets you might find handy
